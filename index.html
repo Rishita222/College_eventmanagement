@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>College Event Registration</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header><p class="eyebrow">COLLEGE EVENTS</p><h1>Event registration</h1><p>Manage registrations, capacity, and waiting lists in one place. Data is cleared when the application closes.</p></header>
+    <div id="message" role="status" aria-live="polite"></div>
+    <section class="forms">
+      <form data-action="add"><h2>Add an event</h2>
+        <label>Event name<input name="name" maxlength="79" required></label>
+        <label>Category<select name="category"><option>Technical</option><option>Cultural</option></select></label>
+        <label>Capacity<input name="capacity" type="number" min="1" max="100" required></label>
+        <button>Add event</button>
+      </form>
+      <form data-action="register"><h2>Register a participant</h2>
+        <label>Event ID<input name="event" type="number" min="1" required></label>
+        <label>Participant ID<input name="id" maxlength="39" required></label>
+        <label>Name<input name="name" maxlength="79" required></label>
+        <label>Department<input name="department" maxlength="79" required></label>
+        <button>Register</button>
+      </form>
+      <form data-action="cancel"><h2>Cancel registration</h2>
+        <label>Event ID<input name="event" type="number" min="1" required></label>
+        <label>Participant ID<input name="id" maxlength="39" required></label>
+        <button class="secondary">Cancel registration</button>
+      </form>
+    </section>
+    <section class="records"><div class="heading"><div><p class="eyebrow">OVERVIEW</p><h2>Events & participants</h2></div><button id="refresh" class="secondary" type="button">Refresh</button></div><pre id="events">Loading...</pre></section>
+  </main><script src="app.js"></script>
+</body>
+</html>
+
