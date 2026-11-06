@@ -3,35 +3,174 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>College Event Registration</title>
+  <title>CampusConnect - College Event Management</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
-    <header><p class="eyebrow">COLLEGE EVENTS</p><h1>Event registration</h1><p>Manage registrations, capacity, and waiting lists in one place. Data is cleared when the application closes.</p></header>
-    <div id="message" role="status" aria-live="polite"></div>
-    <section class="forms">
-      <form data-action="add"><h2>Add an event</h2>
-        <label>Event name<input name="name" maxlength="79" required></label>
-        <label>Category<select name="category"><option>Technical</option><option>Cultural</option></select></label>
-        <label>Capacity<input name="capacity" type="number" min="1" max="100" required></label>
-        <button>Add event</button>
+    <header class="app-header">
+      <div class="header-content">
+        <p class="eyebrow">DATA STRUCTURES PROJECT &bull; IN-MEMORY RUNTIME</p>
+        <h1>CampusConnect Event Registration</h1>
+        <p class="subtitle">
+          Manage college events with <strong>Array</strong> storage, <strong>Singly Linked List</strong> confirmed participants, 
+          <strong>FIFO Queue</strong> waitlisting, and an <strong>Array-based Stack</strong> for activity history.
+        </p>
+      </div>
+      <div class="header-badges">
+        <span class="ds-badge">Array: Events</span>
+        <span class="ds-badge">Linked List: Confirmed</span>
+        <span class="ds-badge">FIFO Queue: Waitlist</span>
+        <span class="ds-badge">Stack: History</span>
+      </div>
+    </header>
+
+    <!-- Feedback Message Banner -->
+    <div id="message" role="status" aria-live="polite" class="hidden"></div>
+
+    <!-- Search & Filter Controls -->
+    <section class="search-section">
+      <div class="search-box">
+        <label for="search-input" class="sr-only">Search Events</label>
+        <input type="text" id="search-input" placeholder="Search events by name, category, or event ID..." maxlength="79">
+        <button id="search-btn" type="button">Search</button>
+        <button id="clear-search-btn" class="secondary" type="button">Reset</button>
+      </div>
+      <div class="search-status" id="search-status"></div>
+    </section>
+
+    <!-- Forms Section: Add, Register, Cancel -->
+    <section class="forms-grid">
+      <!-- Add Event Form -->
+      <form data-action="add" id="form-add" class="card form-card">
+        <div class="card-header">
+          <span class="card-tag">Array Storage</span>
+          <h2>Add New Event</h2>
+        </div>
+        <label>
+          Event Name
+          <input name="name" placeholder="e.g. Web Dev Hackathon" maxlength="79" required>
+        </label>
+        <label>
+          Category
+          <select name="category" required>
+            <option value="Technical">Technical</option>
+            <option value="Cultural">Cultural</option>
+            <option value="Sports">Sports</option>
+            <option value="Academic">Academic</option>
+          </select>
+        </label>
+        <label>
+          Capacity (Max Confirmed)
+          <input name="capacity" type="number" min="1" max="100" placeholder="1 - 100" required>
+        </label>
+        <button type="submit" class="btn-primary">Add Event</button>
       </form>
-      <form data-action="register"><h2>Register a participant</h2>
-        <label>Event ID<input name="event" type="number" min="1" required></label>
-        <label>Participant ID<input name="id" maxlength="39" required></label>
-        <label>Name<input name="name" maxlength="79" required></label>
-        <label>Department<input name="department" maxlength="79" required></label>
-        <button>Register</button>
+
+      <!-- Register Participant Form -->
+      <form data-action="register" id="form-register" class="card form-card">
+        <div class="card-header">
+          <span class="card-tag">List / Queue</span>
+          <h2>Register Participant</h2>
+        </div>
+        <label>
+          Event ID
+          <input name="event" id="reg-event-id" type="number" min="1" placeholder="e.g. 1" required>
+        </label>
+        <label>
+          Participant ID
+          <input name="id" placeholder="e.g. S101" maxlength="39" required>
+        </label>
+        <label>
+          Full Name
+          <input name="name" placeholder="e.g. Alice Smith" maxlength="79" required>
+        </label>
+        <label>
+          Department
+          <input name="department" placeholder="e.g. Computer Science" maxlength="79" required>
+        </label>
+        <button type="submit" class="btn-primary">Register (Individual)</button>
       </form>
-      <form data-action="cancel"><h2>Cancel registration</h2>
-        <label>Event ID<input name="event" type="number" min="1" required></label>
-        <label>Participant ID<input name="id" maxlength="39" required></label>
-        <button class="secondary">Cancel registration</button>
+
+      <!-- Cancel Registration Form -->
+      <form data-action="cancel" id="form-cancel" class="card form-card">
+        <div class="card-header">
+          <span class="card-tag">Queue Promotion</span>
+          <h2>Cancel Registration</h2>
+        </div>
+        <p class="form-help">
+          Cancelling confirmed participant automatically promotes the front waiting participant!
+        </p>
+        <label>
+          Event ID
+          <input name="event" id="cancel-event-id" type="number" min="1" placeholder="e.g. 1" required>
+        </label>
+        <label>
+          Participant ID
+          <input name="id" placeholder="e.g. S101" maxlength="39" required>
+        </label>
+        <button type="submit" class="btn-secondary">Cancel Registration</button>
       </form>
     </section>
-    <section class="records"><div class="heading"><div><p class="eyebrow">OVERVIEW</p><h2>Events & participants</h2></div><button id="refresh" class="secondary" type="button">Refresh</button></div><pre id="events">Loading...</pre></section>
-  </main><script src="app.js"></script>
+
+    <!-- Overview & Live Event Cards -->
+    <section class="records-section">
+      <div class="records-header">
+        <div>
+          <p class="eyebrow">DASHBOARD</p>
+          <h2>Active Events & Rosters</h2>
+        </div>
+        <div class="records-actions">
+          <button id="toggle-raw-btn" class="secondary text-btn" type="button">Terminal View</button>
+          <button id="refresh-btn" class="secondary" type="button">Refresh All</button>
+        </div>
+      </div>
+
+      <!-- Quick Statistics Strip -->
+      <div class="stats-strip" id="stats-strip">
+        <div class="stat-pill"><strong>Events:</strong> <span id="stat-total-events">0</span> / 20</div>
+        <div class="stat-pill"><strong>Total Confirmed:</strong> <span id="stat-total-confirmed">0</span></div>
+        <div class="stat-pill"><strong>Total Waiting:</strong> <span id="stat-total-waiting">0</span></div>
+      </div>
+
+      <!-- Rendered Interactive Event Cards -->
+      <div id="events-grid" class="events-grid">
+        <p class="loading-state">Loading events from C backend...</p>
+      </div>
+
+      <!-- Raw Terminal Monospace View (Collapsible for Viva Verification) -->
+      <div id="raw-view-wrapper" class="hidden">
+        <div class="raw-header">
+          <span class="terminal-title">C Backend Output (stdout)</span>
+          <span class="terminal-badge">gcc 16.2.0</span>
+        </div>
+        <pre id="raw-events">Loading...</pre>
+      </div>
+    </section>
+
+    <!-- Activity History Section (Stack ADT) -->
+    <section class="card history-section">
+      <div class="records-header">
+        <div>
+          <span class="card-tag">LIFO Discipline</span>
+          <h2>Recent Activity History (Array-based Stack)</h2>
+        </div>
+        <button id="refresh-history-btn" class="secondary small-btn" type="button">Refresh Stack</button>
+      </div>
+      <p class="history-note">
+        Maintained in a fixed-size array stack in C. Items are listed latest first (stack top to bottom).
+      </p>
+      <div id="history-container" class="history-list">
+        <p class="loading-state">Loading activity history...</p>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>CampusConnect &bull; Second-Year Data Structures Project &bull; Pure In-Memory C / Python Runtime</p>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
 </body>
 </html>
-

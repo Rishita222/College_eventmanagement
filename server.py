@@ -1,5 +1,5 @@
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlparse
 from pathlib import Path
 import subprocess
 import sys
@@ -13,47 +13,69 @@ FOLDER = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
 event_data = ''
 
 class Handler(SimpleHTTPRequestHandler):
-    # GET requests open the page, its files, or the list of events.
+    # GET requests open the page, its files, or the list/history/search of events.
     def do_GET(self):
-        if self.path == '/api/list':
+        parsed = urlparse(self.path)
+        if parsed.path == '/api/list':
             self.run_c(['list'])
-        elif self.path in ('/', '/index.html', '/style.css', '/app.js'):
+        elif parsed.path == '/api/history':
+            self.run_c(['history'])
+        elif parsed.path == '/api/search':
+            params = parse_qs(parsed.query)
+            q = params.get('q', params.get('query', ['']))[0].strip()
+            if not q:
+                self.reply('Search query cannot be empty.', 400)
+                return
+            if len(q.encode('utf-8')) > 79 or any(c in q for c in '|\r\n'):
+                self.reply('Please enter a valid search query (max 79 chars, no | or newlines).', 400)
+                return
+            self.run_c(['search', q])
+        elif parsed.path in ('/', '/index.html', '/style.css', '/app.js'):
             super().do_GET()
         else:
             self.send_error(404)
 
-    # POST requests send form details (add, register, or cancel).
+    # POST requests send form details (add, register, cancel, or search).
     def do_POST(self):
-        # Only accept requests from this local page.
-        if self.headers.get('Origin') != 'http://127.0.0.1:8000':
+        # Accept requests from local origins or direct programmatic requests
+        origin = self.headers.get('Origin')
+        allowed_origins = ('http://127.0.0.1:8000', 'http://localhost:8000')
+        if origin is not None and origin not in allowed_origins:
             self.send_error(403)
             return
+
+        parsed = urlparse(self.path)
         # Each operation needs a specific set of fields from its form.
         fields_for = {
             '/api/add': ['name', 'category', 'capacity'],
             '/api/register': ['event', 'id', 'name', 'department'],
-            '/api/cancel': ['event', 'id']
+            '/api/cancel': ['event', 'id'],
+            '/api/search': ['query']
         }
-        if self.path not in fields_for:
+        if parsed.path not in fields_for:
             self.send_error(404)
             return
+
         size = int(self.headers.get('Content-Length', '0'))
         if size > 4096:
             self.send_error(413)
             return
         data = parse_qs(self.rfile.read(size).decode('utf-8'))
-        values = [data.get(key, [''])[0].strip() for key in fields_for[self.path]]
+        values = [data.get(key, [''])[0].strip() for key in fields_for[parsed.path]]
+
         # Check that values fit the character arrays used in the C program.
-        limits = {'name': 79, 'category': 39, 'capacity': 3, 'event': 3, 'id': 39, 'department': 79}
+        limits = {'name': 79, 'category': 39, 'capacity': 3, 'event': 3, 'id': 39, 'department': 79, 'query': 79}
         if any(not value or len(value.encode('utf-8')) > limits[key] or any(c in value for c in '|\r\n')
-               for key, value in zip(fields_for[self.path], values)):
+               for key, value in zip(fields_for[parsed.path], values)):
             self.reply('Please enter valid values; | and new lines are not allowed.', 400)
             return
-        for key, value in zip(fields_for[self.path], values):
+        for key, value in zip(fields_for[parsed.path], values):
             if key in ('event', 'capacity') and (not value.isascii() or not value.isdigit()):
                 self.reply('Event ID and capacity must be whole numbers.', 400)
                 return
-        self.run_c([self.path.split('/')[-1]] + values)
+
+        action = parsed.path.split('/')[-1]
+        self.run_c([action] + values)
 
     # Run the compiled C program and send its output back to the browser.
     def run_c(self, args):
